@@ -18,6 +18,7 @@ user = json.loads(resp.content, object_hook=lambda d: SimpleNamespace(**d))
 print("logged in as: ", user.username + "#" + user.discriminator)
 
 lastcommand = 0
+scope = 0
 
 while 1:
     command = input("discord-cli>>")
@@ -44,11 +45,12 @@ while 1:
             exit()
         dms = json.loads(dms_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
         index = 0
+
         for dm in dms:
             if dm.recipients != []:
                 if len(dm.recipients) == 1:
                     print(str(index) + ": " + dm.recipients[0].username)
-                    index = index + 1
+            index = index + 1
         lastcommand = 1
 
     if command == "mass_dms":
@@ -62,10 +64,10 @@ while 1:
             if dm.recipients != []:
                 if len(dm.recipients) > 1:
                     print(index, end=": ")
-                    index = index + 1
                     for recipient in dm.recipients:
                         print(recipient.username, end="; ")
                     print()
+            index = index + 1
         lastcommand = 2
 
     if command == "guilds":
@@ -80,5 +82,23 @@ while 1:
             print(str(index) + ": " + guild.name)
         lastcommand = 3
 
+    if command.startswith("send"):
+        arg = command.split(" ", 1)[1:]
+
+
+
     if command.startswith("goto"):
-        num =
+        num = command.split(" ", 1)
+        scope = int(num[1])
+
+        if lastcommand == 0:
+            print("you have to list something first! try dms, mass_dms or guilds")
+
+        if lastcommand == 1:
+            scopeuser = dms[scope]
+
+        if lastcommand == 2:
+            scopeuser = dms[scope]
+
+        if lastcommand == 3:
+            scopeuser = guilds[scope]
