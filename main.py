@@ -2,30 +2,107 @@ import requests
 import click
 import json
 from types import SimpleNamespace
+import time
+import sys
+import subprocess
+import os
 
-click.echo(click.style('Currently you can only log in using token', bg='blue', fg='red', blink=True, bold=True))
-token = input("token: ")
+try:
+    sessions_file = open("sessions", "r")
+except:
+    sessions_file = open("sessions", "x")
+    sessions_file.close()
+    sessions_file = open("sessions", "r")
+
+sessions = sessions_file.read().split("\n")[1:]
+token = ""
+
+def list_sessions():
+    session_index = 1
+    for session in sessions:
+        print(str(session_index) + ": " + session.split(" :")[0] + " :" + session.split(" :")[1])
+        session_index += 1
+
+using_session = False
+
+if sessions != ['']:
+    use_session = input("sessions found. use one of them? [y/n]: ")
+    if use_session == 'y':
+        list_sessions()
+        session_idn = input("session number:")
+        token = sessions[int(session_idn)-1].split(" :")[0]
+        using_session = True
+
+    if not using_session:
+        sessions_file.close()
+        mode = input("login with token or with email & pass? [t/l]: ")
+        if mode == 't':
+            token = input("token: ")
+
+        elif mode == 'l':
+            email = str(input("E-mail: "))
+            password = str(input("Password: "))
+            payload = {
+                "email": email,
+                "password": password
+            }
+            r = requests.post('https://discord.com/api/v8/auth/login', json=payload).json()
+            if "captcha_key" in r:
+                print(
+                    "A captcha is requested, the email entered is invalid or has been attempted too many times on connection. Rewrite your information.")
+                time.sleep(1)
+            elif "errors" in r:
+                print("An error has occurred. Rewrite your information.")
+            else:
+                token = r['token']
+            if r["token"] == None:
+                print("-----------2FA Authentication-----------")
+                code = input("Enter the 2FA authentication code: ")
+                mfa_payload = {
+                    "code": code,
+                    "ticket": r["ticket"]
+                }
+            r2 = requests.post('https://discord.com/api/v8/auth/mfa/totp', json=mfa_payload).json()
+            if "message" in r2:
+                print("The 2FA authentication code is incorrect. Rewrite the code.")
+                time.sleep(1)
+            else:
+                token = r2['token']
+
+        save = input("save session? [y/n]: ")
+        if save == "y":
+            sessions_file = open("sessions", "a")
+            sessions_file.write("\n" + token + " :" + input("session name:"))
 
 head = {
     "Authorization": token
 }
 
-def analyze_msg(message_to_parse):
-    for char in message_to_parse:
-        if char == "<":
 
+def analyze_msg(message_to_parse):
+    for i in range(len(message_to_parse)):
+        if message_to_parse[i] == "<":
+            idOsoby = ""
+            for j in range(i, len(message_to_parse)):
+                idOsoby += message_to_parse[j]
+                if message_to_parse[j] == ">":
+                    przed = message_to_parse[:-i + 1 + len(idOsoby)]
+                    po = message_to_parse[i + len(idOsoby):]
+                    return przed + parse_uname(idOsoby[3:-1]) + po
 
 
 
 def parse_uname(mentioned_id):
-    mentioned_uname_unparsed = requests.get("https://discord.com/api/users" + id, headers=head)
+    mentioned_uname_unparsed = requests.get("https://discord.com/api/users/" + mentioned_id, headers=head)
     mentioned_uname = json.loads(mentioned_uname_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
     return str(mentioned_uname.username)
 
-
+#nwm
+# funkcja za mało ucinała
+#
 resp = requests.get("http://discord.com/api/users/@me", headers=head)
 if resp.status_code != 200:
-    print("error. status code: ", resp.status_code)
+    print(resp.content)
     exit()
 user = json.loads(resp.content, object_hook=lambda d: SimpleNamespace(**d))
 print("logged in as: ", user.username + "#" + user.discriminator)
@@ -33,6 +110,7 @@ print("logged in as: ", user.username + "#" + user.discriminator)
 lastcommand = 0
 scope = 0
 channelscope_exists = False
+
 while 1:
     command = input("discord-cli>>")
     if (command == "help"):
@@ -150,24 +228,21 @@ while 1:
         #   https://discord.com/developers/docs/resources/channel#get-channel-messages
 
         num = int(command.split(" ", 1)[1])
-        # try:
 
-        # except:
-        # print("Something went wrong! Check the syntax and try again.\n")
         messages_unparsed = requests.get("https://discord.com/api/channels/" + channelscope.id + "/messages",
                                          headers=head)
         messages = json.loads(messages_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
         msgindex = 0
         mention_index = 0
-        for msg in messages:
-            if msgindex > num:
-                break
-            if msg.mentions:
-                for current_mention in msg.mentions:
-                    msg.mentions[mention_index] = msg.mentions.username
-
+        messages_to_print = []
         for msg in messages:
             if msgindex > num:
                 break
             print(msg.content)
+            messages_to_print.append(analyze_msg(msg.content))
+
+        for msg in reversed(messages_to_print):
+            if msgindex > num:
+                break
+            print(messages[msgindex].author.username + ": " + msg)
             msgindex += 1
