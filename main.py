@@ -88,18 +88,19 @@ def analyze_msg(message_to_parse):
                 if message_to_parse[j] == ">":
                     przed = message_to_parse[:-i + 1 + len(idOsoby)]
                     po = message_to_parse[i + len(idOsoby):]
-                    return przed + parse_uname(idOsoby[3:-1]) + po
-
-
+                    print("1"+str(przed))
+                    print("2"+str(idOsoby))
+                    print("3"+str(po))
+                    return przed[:len(idOsoby)+3] + parse_uname(idOsoby[3:-1]) + po
+    print("returning unparsed message")
+    return message_to_parse
 
 def parse_uname(mentioned_id):
     mentioned_uname_unparsed = requests.get("https://discord.com/api/users/" + mentioned_id, headers=head)
     mentioned_uname = json.loads(mentioned_uname_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
     return str(mentioned_uname.username)
 
-#nwm
-# funkcja za mało ucinała
-#
+
 resp = requests.get("http://discord.com/api/users/@me", headers=head)
 if resp.status_code != 200:
     print(resp.content)
@@ -162,7 +163,7 @@ while 1:
             index = index + 1
         lastcommand = 2
 
-    if command == "guilds" or command == "servers":
+    if command == "guilds" or command == "servers" or command == "sv":
         guilds_unparsed = requests.get("http://discord.com/api/users/@me/guilds", headers=head)
         if guilds_unparsed.status_code != 200:
             print("error code: ", guilds_unparsed.status_code)
@@ -174,7 +175,7 @@ while 1:
             print(str(index) + ": " + guild.name)
         lastcommand = 3
 
-    if command == "channels":
+    if command == "channels" or command == "ch":
         lastcommand = 4
         channels_unparsed = requests.get("https://discord.com/api/guilds/" + scopeuser.id + "/channels", headers=head)
         if channels_unparsed.status_code != 200:
@@ -228,21 +229,36 @@ while 1:
         #   https://discord.com/developers/docs/resources/channel#get-channel-messages
 
         num = int(command.split(" ", 1)[1])
+        if lastcommand == 4:
+            messages_unparsed = requests.get("https://discord.com/api/channels/" + channelscope.id + "/messages",
+                                             headers=head)
+        elif lastcommand == 3:
+            print("choose channel first!")
+        elif lastcommand == 2:
+            messages_unparsed = requests.get("https://discord.com/api/channels/" + scopeuser.id + "/messages",
+                                             headers=head)
+        elif lastcommand == 1:
+            messages_unparsed = requests.get("https://discord.com/api/channels/" + scopeuser.id + "/messages",
+                                             headers=head)
+        else:
+            print("unexpected error!")
 
-        messages_unparsed = requests.get("https://discord.com/api/channels/" + channelscope.id + "/messages",
-                                         headers=head)
+
         messages = json.loads(messages_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
-        msgindex = 0
+        msgindex = 1
         mention_index = 0
         messages_to_print = []
         for msg in messages:
             if msgindex > num:
                 break
-            print(msg.content)
+            # print(str(analyze_msg(msg.content)))
+            print(parse_uname(msg.author.id)+": "+str(analyze_msg(msg.content)))
             messages_to_print.append(analyze_msg(msg.content))
+            msgindex += 1
 
+        # msgindex = 0  # enables printing in reverse
         for msg in reversed(messages_to_print):
             if msgindex > num:
                 break
-            print(messages[msgindex].author.username + ": " + msg)
+            print(msg)
             msgindex += 1
