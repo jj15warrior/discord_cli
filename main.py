@@ -10,6 +10,19 @@ head = {
     "Authorization": token
 }
 
+def analyze_msg(message_to_parse):
+    for char in message_to_parse:
+        if char == "<":
+
+
+
+
+def parse_uname(mentioned_id):
+    mentioned_uname_unparsed = requests.get("https://discord.com/api/users" + id, headers=head)
+    mentioned_uname = json.loads(mentioned_uname_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
+    return str(mentioned_uname.username)
+
+
 resp = requests.get("http://discord.com/api/users/@me", headers=head)
 if resp.status_code != 200:
     print("error. status code: ", resp.status_code)
@@ -112,9 +125,9 @@ while 1:
             print("choose channel first!")
 
         if lastcommand == 4:
-            channel_msg_resp = requests.post("https://discord.com/api/v10/channels/" + channelscope.id, headers=head,
+            channel_msg_resp = requests.post("https://discord.com/api/channels/" + channelscope.id + "/messages",
+                                             headers=head,
                                              data=message)
-            print(channel_msg_resp.content)
     if command.startswith("goto") or command.startswith("cd"):
         num = command.split(" ", 1)
         scope = int(num[1])
@@ -132,3 +145,29 @@ while 1:
         if lastcommand == 4:
             channelscope_exists = True
             channelscope = channels[scope - 1]
+
+    if command.startswith("history"):  # Show recent messages
+        #   https://discord.com/developers/docs/resources/channel#get-channel-messages
+
+        num = int(command.split(" ", 1)[1])
+        # try:
+
+        # except:
+        # print("Something went wrong! Check the syntax and try again.\n")
+        messages_unparsed = requests.get("https://discord.com/api/channels/" + channelscope.id + "/messages",
+                                         headers=head)
+        messages = json.loads(messages_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
+        msgindex = 0
+        mention_index = 0
+        for msg in messages:
+            if msgindex > num:
+                break
+            if msg.mentions:
+                for current_mention in msg.mentions:
+                    msg.mentions[mention_index] = msg.mentions.username
+
+        for msg in messages:
+            if msgindex > num:
+                break
+            print(msg.content)
+            msgindex += 1
