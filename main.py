@@ -17,11 +17,13 @@ except:
 sessions = sessions_file.read().split("\n")[1:]
 token = ""
 
+
 def list_sessions():
     session_index = 1
     for session in sessions:
         print(str(session_index) + ": " + session.split(" :")[0] + " :" + session.split(" :")[1])
         session_index += 1
+
 
 using_session = False
 
@@ -30,7 +32,7 @@ if sessions != ['']:
     if use_session == 'y':
         list_sessions()
         session_idn = input("session number:")
-        token = sessions[int(session_idn)-1].split(" :")[0]
+        token = sessions[int(session_idn) - 1].split(" :")[0]
         using_session = True
 
     if not using_session:
@@ -86,14 +88,11 @@ def analyze_msg(message_to_parse):
             for j in range(i, len(message_to_parse)):
                 idOsoby += message_to_parse[j]
                 if message_to_parse[j] == ">":
-                    przed = message_to_parse[:-i + 1 + len(idOsoby)]
+                    przed = message_to_parse[:i]
                     po = message_to_parse[i + len(idOsoby):]
-                    print("1"+str(przed))
-                    print("2"+str(idOsoby))
-                    print("3"+str(po))
-                    return przed[:len(idOsoby)+3] + parse_uname(idOsoby[3:-1]) + po
-    print("returning unparsed message")
-    return message_to_parse
+                    return [przed, idOsoby[3:-1], po]
+    return ["", message_to_parse, ""]
+
 
 def parse_uname(mentioned_id):
     mentioned_uname_unparsed = requests.get("https://discord.com/api/users/" + mentioned_id, headers=head)
@@ -243,7 +242,6 @@ while 1:
         else:
             print("unexpected error!")
 
-
         messages = json.loads(messages_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
         msgindex = 1
         mention_index = 0
@@ -252,11 +250,20 @@ while 1:
             if msgindex > num:
                 break
             # print(str(analyze_msg(msg.content)))
-            print(parse_uname(msg.author.id)+": "+str(analyze_msg(msg.content)))
-            messages_to_print.append(analyze_msg(msg.content))
+
+            analyzed = analyze_msg(msg.content)
+
+            if analyzed[1] == msg.content:  # W wiadomości nie ma wzmianki
+                # print(parse_uname(msg.author.id)+": " + msg.content)
+                messages_to_print.append(msg.author.id + ": " + msg.content)
+            else:
+                # print(parse_uname(msg.author.id)+": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
+                messages_to_print.append(
+                    parse_uname(msg.author.id) + ": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
+
             msgindex += 1
 
-        # msgindex = 0  # enables printing in reverse
+        msgindex = 0  # enables printing in reverse
         for msg in reversed(messages_to_print):
             if msgindex > num:
                 break
