@@ -97,7 +97,10 @@ def analyze_msg(message_to_parse):
 def parse_uname(mentioned_id):
     mentioned_uname_unparsed = requests.get("https://discord.com/api/users/" + mentioned_id, headers=head)
     mentioned_uname = json.loads(mentioned_uname_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
-    return str(mentioned_uname.username)
+    try:
+        return str(mentioned_uname.username)
+    except:
+        return "[error]"
 
 
 resp = requests.get("http://discord.com/api/users/@me", headers=head)
@@ -224,9 +227,11 @@ while 1:
             channelscope_exists = True
             channelscope = channels[scope - 1]
 
-    if command.startswith("history"):  # Show recent messages
-        #   https://discord.com/developers/docs/resources/channel#get-channel-messages
+    if command.startswith("history") or command.startswith("h"):  # Show recent messages
 
+        # acha błąd jest, jak ktoś samą emotke wyśle
+        #
+        # https://www.programmableweb.com/api/ascii-art-rest-api-v1
         num = int(command.split(" ", 1)[1])
         if lastcommand == 4:
             messages_unparsed = requests.get("https://discord.com/api/channels/" + channelscope.id + "/messages",
@@ -263,6 +268,7 @@ while 1:
 
             msgindex += 1
 
+        # To o to chodzi
         msgindex = 0  # enables printing in reverse
         for msg in reversed(messages_to_print):
             if msgindex > num:
