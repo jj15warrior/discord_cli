@@ -255,7 +255,7 @@ while 1:
 
             if analyzed[1] == msg.content:  # W wiadomości nie ma wzmianki
                 # print(parse_uname(msg.author.id)+": " + msg.content)
-                messages_to_print.append(msg.author.id + ": " + msg.content)
+                messages_to_print.append(parse_uname(msg.author.id) + ": " + msg.content)
             else:
                 # print(parse_uname(msg.author.id)+": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
                 messages_to_print.append(
