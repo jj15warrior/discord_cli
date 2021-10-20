@@ -266,16 +266,28 @@ while 1:
             # print(str(analyze_msg(msg.content)))
             
             analyzed = analyze_msg(msg.content)
-    
+            
+            reactionString = ""
+            try:
+                reactions = msg.reactions 
+                for i in range(len(reactions)):
+                    reactions[i] = str(reactions[i].count) + "x" + reactions[i].emoji.name
+
+                reactions = " ".join(reactions)
+                reactionString = "    |" + reactions
+            except: pass
+            
             if analyzed[1] == msg.content:  # W wiadomości nie ma wzmianki
                 #print(parse_uname(msg.author.id)+": " + msg.content)
                 analyzed[1] = search_for_emojis(msg.content)
-                messages_to_print.append(parse_uname(msg.author.id)+": " + analyzed[1])
-            else:
+                messages_to_print.append(parse_uname(msg.author.id)+": " + analyzed[1] + reactionString)
+                
+            else: 
                 #print(parse_uname(msg.author.id)+": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
-                analyzed[0] = search_for_emojis(msg.content)
-                analyzed[2] = search_for_emojis(msg.content)
-                messages_to_print.append(parse_uname(msg.author.id)+": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
+                analyzed[0] = search_for_emojis(analyzed[0])
+                analyzed[2] = search_for_emojis(analyzed[2])
+                
+                messages_to_print.append(parse_uname(msg.author.id)+": " + analyzed[0] + "@" + parse_uname(analyzed[1]) + analyzed[2] + reactionString)
             
             msgindex += 1
         
