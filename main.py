@@ -274,7 +274,7 @@ while 1:
             else:
                 #print(parse_uname(msg.author.id)+": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
                 analyzed[0] = search_for_emojis(msg.content)
-                analyzed[2] = search_for_emojis(smsg.content)
+                analyzed[2] = search_for_emojis(msg.content)
                 messages_to_print.append(parse_uname(msg.author.id)+": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
             
             msgindex += 1
