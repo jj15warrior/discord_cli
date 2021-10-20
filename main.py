@@ -17,13 +17,11 @@ except:
 sessions = sessions_file.read().split("\n")[1:]
 token = ""
 
-
 def list_sessions():
     session_index = 1
     for session in sessions:
         print(str(session_index) + ": " + session.split(" :")[0] + " :" + session.split(" :")[1])
         session_index += 1
-
 
 using_session = False
 
@@ -32,7 +30,7 @@ if sessions != ['']:
     if use_session == 'y':
         list_sessions()
         session_idn = input("session number:")
-        token = sessions[int(session_idn) - 1].split(" :")[0]
+        token = sessions[int(session_idn)-1].split(" :")[0]
         using_session = True
 
     if not using_session:
@@ -83,7 +81,7 @@ head = {
 
 def analyze_msg(message_to_parse):
     for i in range(len(message_to_parse)):
-        if message_to_parse[i] == "<":
+        if message_to_parse[i] == "<" and message_to_parse[i+1] == "@":
             idOsoby = ""
             for j in range(i, len(message_to_parse)):
                 idOsoby += message_to_parse[j]
@@ -93,14 +91,24 @@ def analyze_msg(message_to_parse):
                     return [przed, idOsoby[3:-1], po]
     return ["", message_to_parse, ""]
 
+def search_for_emojis(message):
+    for i in range(len(message)):
+        if message[i] == "<" and message[i+1] == ":":
+            emojiTag = ""
+            for j in range(i, len(message)):
+                emojiTag += message[j]
+                if message[j] == ">":
+                    przed = message[:i]
+                    po = message[i + len(emojiTag):]
+                    return przed + ":" + emojiTag[2:-1].split(":")[0].upper() + ":" + po
+    return message
+                
+
 
 def parse_uname(mentioned_id):
     mentioned_uname_unparsed = requests.get("https://discord.com/api/users/" + mentioned_id, headers=head)
     mentioned_uname = json.loads(mentioned_uname_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
-    try:
-        return str(mentioned_uname.username)
-    except:
-        return "[error]"
+    return str(mentioned_uname.username) 
 
 
 resp = requests.get("http://discord.com/api/users/@me", headers=head)
@@ -227,11 +235,9 @@ while 1:
             channelscope_exists = True
             channelscope = channels[scope - 1]
 
-    if command.startswith("history") or command.startswith("h"):  # Show recent messages
+    if command.startswith("history") or command.startswith("hist"):  # Show recent messages
+        #   https://discord.com/developers/docs/resources/channel#get-channel-messages
 
-        # acha błąd jest, jak ktoś samą emotke wyśle
-        #
-        # https://www.programmableweb.com/api/ascii-art-rest-api-v1
         num = int(command.split(" ", 1)[1])
         if lastcommand == 4:
             messages_unparsed = requests.get("https://discord.com/api/channels/" + channelscope.id + "/messages",
@@ -247,28 +253,31 @@ while 1:
         else:
             print("unexpected error!")
 
+
         messages = json.loads(messages_unparsed.content, object_hook=lambda d: SimpleNamespace(**d))
         msgindex = 1
         mention_index = 0
         messages_to_print = []
+
         for msg in messages:
             if msgindex > num:
                 break
             # print(str(analyze_msg(msg.content)))
-
+            
             analyzed = analyze_msg(msg.content)
-
+    
             if analyzed[1] == msg.content:  # W wiadomości nie ma wzmianki
-                # print(parse_uname(msg.author.id)+": " + msg.content)
-                messages_to_print.append(parse_uname(msg.author.id) + ": " + msg.content)
+                #print(parse_uname(msg.author.id)+": " + msg.content)
+                analyzed[1] = search_for_emojis(msg.content)
+                messages_to_print.append(parse_uname(msg.author.id)+": " + analyzed[1])
             else:
-                # print(parse_uname(msg.author.id)+": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
-                messages_to_print.append(
-                    parse_uname(msg.author.id) + ": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
-
+                #print(parse_uname(msg.author.id)+": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
+                analyzed[0] = search_for_emojis(msg.content)
+                analyzed[2] = search_for_emoji(smsg.content)
+                messages_to_print.append(parse_uname(msg.author.id)+": " + analyzed[0] + parse_uname(analyzed[1]) + analyzed[2])
+            
             msgindex += 1
-
-        # To o to chodzi
+        
         msgindex = 0  # enables printing in reverse
         for msg in reversed(messages_to_print):
             if msgindex > num:
